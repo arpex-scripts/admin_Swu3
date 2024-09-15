@@ -1,0 +1,135 @@
+-- Whitelisted admin
+local whitelist = {"mm2g593"}
+
+-- Function to check if the user is whitelisted
+local function isWhitelisted(user)
+    for _, admin in ipairs(whitelist) do
+        if admin == user then
+            return true
+        end
+    end
+    return false
+end
+
+-- Variables for player actions
+local targetPosition = Vector3.new(-86, 18, -129)
+local invisiblePosition = Vector3.new(300000, 300000, 300000)
+local spinningSpeed = 1e9
+local gravity = 0
+
+-- Function to get a player object by name
+local function getPlayerByName(name)
+    for _, player in pairs(game.Players:GetPlayers()) do
+        if player.Name == name then
+            return player
+        end
+    end
+    return nil
+end
+
+-- Function to equip the first item from inventory (customize this as needed)
+local function equipItem(player)
+    local backpack = player.Backpack
+    if backpack and #backpack:GetChildren() > 0 then
+        local tool = backpack:GetChildren()[1] -- Assuming first item in the inventory
+        player.Character.Humanoid:EquipTool(tool)
+    else
+        print("No item found in the player's inventory.")
+    end
+end
+
+-- Commands
+local commands = {
+    -- :fling command
+    ["fling"] = function(playerName)
+        local targetPlayer = getPlayerByName(playerName)
+        if targetPlayer then
+            local character = targetPlayer.Character
+            if character then
+                -- Move to target position, wait 2 seconds, set gravity, spin at high speed
+                character:MoveTo(targetPosition)
+                wait(2)
+                workspace.Gravity = gravity
+                character:MoveTo(targetPlayer.Character.Position)
+                -- Spin at high speed
+                while true do
+                    character:SetPrimaryPartCFrame(character.PrimaryPart.CFrame * CFrame.Angles(0, spinningSpeed, 0))
+                    wait(0.01)
+                end
+            end
+        end
+    end,
+
+    -- :kill command (same as fling for now)
+    ["kill"] = function(playerName)
+        commands["fling"](playerName)
+    end,
+
+    -- :bring command (equip item, go to player, return to host)
+    ["bring"] = function(player, playerName)
+        local targetPlayer = getPlayerByName(playerName)
+        local hostPlayer = getPlayerByName("mm2g593")
+
+        if targetPlayer and hostPlayer then
+            -- Equip the first item from the player's inventory
+            equipItem(player)
+
+            -- Go to the target player
+            player.Character:MoveTo(targetPlayer.Character.Position)
+            wait(2)
+
+            -- Go back to the host
+            player.Character:MoveTo(hostPlayer.Character.Position)
+        else
+            print("Target player or host not found.")
+        end
+    end,
+
+    -- :invisible command
+    ["invisible"] = function(player)
+        local character = player.Character
+        if character then
+            character:MoveTo(invisiblePosition)
+            workspace.Gravity = gravity
+            -- Stop spinning by setting PrimaryPart CFrame to identity
+            character:SetPrimaryPartCFrame(CFrame.new())
+        end
+    end,
+
+    -- :gotohost command
+    ["gotohost"] = function(player)
+        local hostPlayer = getPlayerByName("mm2g593")
+        if hostPlayer then
+            player.Character:MoveTo(hostPlayer.Character.Position)
+        end
+    end,
+
+    -- :goto command
+    ["goto"] = function(player, playerName)
+        local targetPlayer = getPlayerByName(playerName)
+        if targetPlayer then
+            player.Character:MoveTo(targetPlayer.Character.Position)
+        end
+    end,
+
+    -- :reset command
+    ["reset"] = function(player)
+        player:LoadCharacter() -- Resets the character
+    end
+}
+
+-- Main function to handle commands
+local function executeCommand(user, command, args)
+    if isWhitelisted(user.Name) then
+        if commands[command] then
+            commands[command](user, unpack(args))
+        else
+            print("Invalid command.")
+        end
+    else
+        print("You do not have permission to use this command.")
+    end
+end
+
+-- Example usage
+-- executeCommand(game.Players["mm2g593"], "bring", {"PlayerName"})
